@@ -37,9 +37,6 @@ class BasicTask:
             logger.debug(f'Calling {self.name()}')
             graph = kwargs.get('graph')
             graph.started(self)
-            # if self.name() == 'print_brup5':
-            if self.name() == 'print_brup3_unknown_dep':
-                print(graph.to_graphviz())
             result = self.func(*args, **kwargs)
             graph.completed(self)
         else:
@@ -79,16 +76,10 @@ class StaticTask(BasicTask):
             logger.debug(f'Calling static {self.name()}')
             graph = kwargs.get('graph')
             graph.started(self)
-            if self.name() == 'print_brup4':
-                graph = kwargs.get('graph')
-                print(graph.to_graphviz())
             result = self.func(*args, **kwargs)
             graph.completed(self)
         else:
             logger.debug(f'Dry running {self.name()}')
-            if self.name() == 'print_brup4':
-                graph = kwargs.get('graph')
-                print(graph.to_graphviz())
             for dep in self.deps:
                 dep(*args, **kwargs)
 

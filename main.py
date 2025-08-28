@@ -69,17 +69,11 @@ def do_stuff2(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    # logging.basicConfig(filename='orchestrator.log', level=logging.DEBUG)
+    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(filename='orchestrator.log', level=logging.DEBUG)
 
     print()
     do_stuff2.dry_run()
 
     print()
     do_stuff2.run()
-
-    # print()
-    # do_stuff.to_graphviz()
-
-    # print()
-    # do_stuff2.dry_run()

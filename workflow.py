@@ -23,6 +23,7 @@ class BasicWorkflow:
     def dry_run(self, *args, **kwargs) -> None:
         kwargs['dry_run'] = True
         self.run(self.entry, *args, **kwargs)
+        self.graph.save()
 
     def to_graphviz(self) -> None:
         print(self.graph.to_graphviz())

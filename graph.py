@@ -55,6 +55,7 @@ def edge_style(status: Status) -> str:
 class Graph:
     edges: dict[BasicTask, list[BasicTask]]
     status: dict[BasicTask, Status]
+    step: int = 0
 
     def __init__(self, root: BasicTask) -> None:
         self.edges = {}
@@ -82,8 +83,12 @@ class Graph:
             del self.status[orphan]
             self.edges[node].remove(orphan)
 
+        self.save()
+
     def started(self, node: BasicTask) -> None:
         self.status[node] = Status.IN_PROGRESS
+
+        self.save()
 
     def speculate(self, node: BasicTask) -> None:
         spec = SpeculativeTask(f'{node.name()}_children')
@@ -107,3 +112,8 @@ class Graph:
         result.append('}')
 
         return '\n'.join(result)
+
+    def save(self) -> None:
+        with open(f'graphs/graph_{self.step:03}.dot', 'w') as file:
+            file.write(self.to_graphviz())
+            self.step += 1
