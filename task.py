@@ -1,81 +1,101 @@
+import logging
 from functools import partial
-from typing import Callable, Any
+from typing import Any, Callable, overload, override
 
-from typing_extensions import override, overload
+logger = logging.getLogger(__name__)
 
 
 class BasicTask:
     func: Callable
-    stack: list[str]
 
-    def __init__(self, func: Callable, stack: list[str]):
+    def __init__(self, func: Callable) -> None:
         self.func = func
-        self.stack = stack
 
-    def name(self):
+    def name(self) -> str:
         return self.func.__name__
 
-    def __call__(self, *args, **kwargs):
-        stack = kwargs.get('stack')
-        if stack is None:
-            stack = []
-            kwargs['stack'] = stack
-        stack.append(self.name())
-        print(f'Current stack: {stack}')
+    def __call__(self, *args, **kwargs) -> Any:
+        call_stack = kwargs.get('call_stack')
+        call_stack.append(self)
+        logger.debug(f'Current call stack: {[task.name() for task in call_stack]}')
 
-        task_list = kwargs.get('task_list')
-        if task_list is not None and len(stack) > 1:
-            task_list.append(f'{stack[-2]} -> {self.name()};')
+        graph = kwargs.get('graph')
+        if len(call_stack) > 1:
+            graph.add_edge(call_stack[-2], call_stack[-1])
 
-        return self.execute(*args, **kwargs)
+        result = self.execute(*args, **kwargs)
 
-    def execute(self, *args, **kwargs):
+        call_stack.pop()
+
+        return result
+
+    def execute(self, *args, **kwargs) -> Any:
         result = None
+
         dry_run = kwargs.get('dry_run', False)
         if not dry_run:
-            print(f'Calling {self.name()}')
+            logger.debug(f'Calling {self.name()}')
+            graph = kwargs.get('graph')
+            graph.started(self)
+            # if self.name() == 'print_brup5':
+            if self.name() == 'print_brup3_unknown_dep':
+                print(graph.to_graphviz())
             result = self.func(*args, **kwargs)
+            graph.completed(self)
         else:
-            print(f'Dry running {self.name()}')
+            logger.debug(f'Dry running {self.name()}')
+            graph = kwargs.get('graph')
+            graph.speculate(self)
             task_list = kwargs.get('task_list')
             if task_list is not None:
                 task_list.append(f'{self.name()}_children [style="rounded,dotted"];')
                 task_list.append(f'{self.name()} -> {self.name()}_children;')
 
-        stack = kwargs.get('stack')
-        print(f'Current stack: {stack}')
-        stack.pop()
-        print(f'{self.name()} completed with result: {result}')
+        call_stack = kwargs.get('call_stack')
+        logger.debug(f'Current call stack: {[task.name() for task in call_stack]}')
+
+        logger.debug(f'{self.name()} completed with result: {result}')
 
         return result
 
 
 def task(func: Callable) -> BasicTask:
-    return BasicTask(func, [])
+    return BasicTask(func)
 
 
 class StaticTask(BasicTask):
     deps: list[BasicTask]
 
-    def __init__(self, func: Callable, deps: list[BasicTask] = None):
-        super().__init__(func, [])
+    def __init__(self, func: Callable, deps: list[BasicTask] = None) -> None:
+        super().__init__(func)
         self.deps = deps or []
 
     @override
-    def execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs) -> Any:
         result = None
+
         dry_run = kwargs.get('dry_run', False)
         if not dry_run:
-            print(f'Calling static {self.name()}')
+            logger.debug(f'Calling static {self.name()}')
+            graph = kwargs.get('graph')
+            graph.started(self)
+            if self.name() == 'print_brup4':
+                graph = kwargs.get('graph')
+                print(graph.to_graphviz())
             result = self.func(*args, **kwargs)
+            graph.completed(self)
         else:
-            print(f'Dry running {self.name()}')
+            logger.debug(f'Dry running {self.name()}')
+            if self.name() == 'print_brup4':
+                graph = kwargs.get('graph')
+                print(graph.to_graphviz())
             for dep in self.deps:
                 dep(*args, **kwargs)
-        stack = kwargs.get('stack')
-        print(f'Current stack: {stack}')
-        stack.pop()
-        print(f'{self.name()} completed with result: {result}')
+
+        call_stack = kwargs.get('call_stack')
+        logger.debug(f'Current stack: {[task.name() for task in call_stack]}')
+
+        logger.debug(f'{self.name()} completed with result: {result}')
 
         return result
 
@@ -96,5 +116,6 @@ def static_task(func: Callable = None, deps: list[BasicTask] = None) -> Any:
 
     return StaticTask(func, deps)
 
+
 def leaf_task(func: Callable) -> StaticTask:
-    return StaticTask(func, [])
+    return StaticTask(func, None)

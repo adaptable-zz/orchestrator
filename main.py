@@ -1,3 +1,5 @@
+import logging
+
 from task import task, static_task, leaf_task
 from workflow import workflow
 
@@ -16,8 +18,14 @@ def print_brup2(*args, **kwargs):
 
 
 @task
+def print_brup3_unknown_dep(*args, **kwargs):
+    return True
+
+
+@task
 def print_brup3(*args, **kwargs):
     print('*****\nbrup3\n*****')
+    print_brup3_unknown_dep(*args, **kwargs)
     return True
 
 
@@ -35,7 +43,7 @@ def print_brup4(*args, **kwargs):
     return True
 
 
-#@static_task(deps=[])
+# @static_task(deps=[])
 @leaf_task
 def print_brup6(*args, **kwargs):
     print('*****\nbrup6\n*****')
@@ -61,11 +69,17 @@ def do_stuff2(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    do_stuff.run()
-    print()
-    do_stuff.to_viz()
+    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(filename='orchestrator.log', level=logging.DEBUG)
 
     print()
     do_stuff2.dry_run()
+
     print()
-    do_stuff2.to_viz()
+    do_stuff2.run()
+
+    # print()
+    # do_stuff.to_graphviz()
+
+    # print()
+    # do_stuff2.dry_run()

@@ -1,32 +1,31 @@
+from typing import Any
+
+from graph import Graph
 from task import BasicTask
 
 
 class BasicWorkflow:
-    tasks: list[str]
     entry: BasicTask
+    graph: Graph
 
-    def __init__(self, entry: BasicTask):
-        self.tasks = []
+    def __init__(self, entry: BasicTask) -> None:
         self.entry = entry
+        self.graph = Graph(self.entry)
 
-    def run(self, *args, **kwargs):
-        kwargs['task_list'] = self.tasks
+    def run(self, *args, **kwargs) -> Any:
+        kwargs['graph'] = self.graph
+        kwargs['call_stack'] = []
         return self.entry(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Any:
         return self.entry(*args, **kwargs)
 
-    def dry_run(self, *args, **kwargs):
+    def dry_run(self, *args, **kwargs) -> None:
         kwargs['dry_run'] = True
         self.run(self.entry, *args, **kwargs)
 
-    def to_viz(self):
-        print('digraph {')
-        print('\trankdir=LR;')
-        print('\tnode [shape=rectangle style=rounded];')
-        for edge in self.tasks:
-            print(f'\t{edge}')
-        print('}')
+    def to_graphviz(self) -> None:
+        print(self.graph.to_graphviz())
 
 
 def workflow(func: BasicTask) -> BasicWorkflow:
