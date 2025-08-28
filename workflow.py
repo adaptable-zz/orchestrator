@@ -15,6 +15,7 @@ class BasicWorkflow:
     def run(self, *args, **kwargs) -> Any:
         kwargs['graph'] = self.graph
         kwargs['call_stack'] = []
+        kwargs['static_constraints'] = {}
         return self.entry(*args, **kwargs)
 
     def __call__(self, *args, **kwargs) -> Any:

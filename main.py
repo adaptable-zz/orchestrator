@@ -40,6 +40,7 @@ def print_brup4(*args, **kwargs):
     print('*****\nbrup4\n*****')
     print_brup3(*args, **kwargs)
     print_brup5(*args, **kwargs)
+    #print_brup2(*args, **kwargs)
     return True
 
 

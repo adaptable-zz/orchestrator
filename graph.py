@@ -90,6 +90,11 @@ class Graph:
 
         self.save()
 
+    def error(self, node: BasicTask) -> None:
+        self.status[node] = Status.ERROR
+
+        self.save()
+
     def speculate(self, node: BasicTask) -> None:
         spec = SpeculativeTask(f'{node.name()}_children')
         self.add_edge(node, spec)

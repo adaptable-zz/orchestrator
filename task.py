@@ -23,6 +23,14 @@ class BasicTask:
         if len(call_stack) > 1:
             graph.add_edge(call_stack[-2], call_stack[-1])
 
+        # Fail if undeclared call from a static task.
+        if not kwargs.get('dry_run', False) and (len(call_stack)) > 1:
+            constraints = kwargs.get('static_constraints')
+            if call_stack[-2] in constraints.keys() and self not in constraints[call_stack[-2]]:
+                graph.error(self)
+                logger.debug('Static call failure: ' + self.name())
+                return None
+
         result = self.execute(*args, **kwargs)
 
         call_stack.pop()
@@ -75,6 +83,11 @@ class StaticTask(BasicTask):
         if not dry_run:
             logger.debug(f'Calling static {self.name()}')
             graph = kwargs.get('graph')
+
+            constraints = kwargs.get('static_constraints')
+            if self not in constraints.keys():
+                constraints[self] = list(self.deps)
+
             graph.started(self)
             result = self.func(*args, **kwargs)
             graph.completed(self)
