@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import override
 
-from task import BasicTask
+from task import BasicTask, MapTask
 
 
 class SpeculativeTask(BasicTask):
@@ -24,6 +24,7 @@ class Status(Enum):
     COMPLETED = 5
     ERROR = 6
     SPECULATED = 7
+    KNOWN_MAP = 8
 
 
 def style(status: Status) -> str:
@@ -42,6 +43,8 @@ def style(status: Status) -> str:
             return ' [style="rounded,filled" fillcolor="red"]'
         case Status.SPECULATED:
             return ' [style="rounded,dotted"]'
+        case Status.KNOWN_MAP:
+            return ' [shape="folder" style="dotted"]'
 
 
 def edge_style(status: Status) -> str:
@@ -92,7 +95,13 @@ class Graph:
 
         self.save()
 
+    def scheduled(self, node: BasicTask) -> None:
+        self.status[node] = Status.IN_PROGRESS
+
     def started(self, node: BasicTask) -> None:
+        if self.status[node] == Status.IN_PROGRESS:
+            return
+
         self.status[node] = Status.IN_PROGRESS
 
         self.save()
@@ -115,7 +124,10 @@ class Graph:
         result.append('\tnode [shape="rectangle" style="rounded"];')
 
         for node, status in self.status.items():
-            result.append(f'\t{node.name()}{style(status)};')
+            map_tag = ''
+            if isinstance(node, MapTask):
+                map_tag = ' [shape="folder"]'
+            result.append(f'\t{node.name()}{map_tag}{style(status)};')
 
         for parent, children in self.edges.items():
             for child in children:
