@@ -1,4 +1,5 @@
 import logging
+import sys
 from functools import partial
 from typing import Any, Callable, overload, override
 
@@ -28,8 +29,9 @@ class BasicTask:
             constraints = kwargs.get('static_constraints')
             if call_stack[-2] in constraints.keys() and self not in constraints[call_stack[-2]]:
                 graph.error(self)
-                logger.debug('Static call failure: ' + self.name())
-                return None
+                error_msg = f'Static call failure: {call_stack[-2].name()}->{self.name()}'
+                logger.debug(error_msg)
+                sys.exit(error_msg)
 
         result = self.execute(*args, **kwargs)
 
@@ -51,10 +53,6 @@ class BasicTask:
             logger.debug(f'Dry running {self.name()}')
             graph = kwargs.get('graph')
             graph.speculate(self)
-            task_list = kwargs.get('task_list')
-            if task_list is not None:
-                task_list.append(f'{self.name()}_children [style="rounded,dotted"];')
-                task_list.append(f'{self.name()} -> {self.name()}_children;')
 
         call_stack = kwargs.get('call_stack')
         logger.debug(f'Current call stack: {[task.name() for task in call_stack]}')
@@ -70,10 +68,12 @@ def task(func: Callable) -> BasicTask:
 
 class StaticTask(BasicTask):
     deps: list[BasicTask]
+    branches: list[BasicTask]
 
-    def __init__(self, func: Callable, deps: list[BasicTask] = None) -> None:
+    def __init__(self, func: Callable, deps: list[BasicTask] = None, branches: list[BasicTask] = None) -> None:
         super().__init__(func)
         self.deps = deps or []
+        self.branches = branches or []
 
     @override
     def execute(self, *args, **kwargs) -> Any:
@@ -93,8 +93,16 @@ class StaticTask(BasicTask):
             graph.completed(self)
         else:
             logger.debug(f'Dry running {self.name()}')
+            for branch in self.branches:
+                if branch not in self.deps:
+                    self.deps.append(branch)
+
             for dep in self.deps:
                 dep(*args, **kwargs)
+
+            graph = kwargs.get('graph')
+            for branch in self.branches:
+                graph.branch(branch)
 
         call_stack = kwargs.get('call_stack')
         logger.debug(f'Current stack: {[task.name() for task in call_stack]}')
@@ -110,16 +118,16 @@ def static_task(func: Callable) -> StaticTask:
 
 
 @overload
-def static_task(*, deps: list[BasicTask]) -> Callable[[Callable], StaticTask]:
+def static_task(*, deps: list[BasicTask], branches: list[BasicTask]) -> Callable[[Callable], StaticTask]:
     ...
 
 
-def static_task(func: Callable = None, deps: list[BasicTask] = None) -> Any:
+def static_task(func: Callable = None, deps: list[BasicTask] = None, branches: list[BasicTask] = None) -> Any:
     if func is None:
-        return partial(static_task, deps=deps)
+        return partial(static_task, deps=deps, branches=branches)
 
-    return StaticTask(func, deps)
+    return StaticTask(func, deps, branches)
 
 
 def leaf_task(func: Callable) -> StaticTask:
-    return StaticTask(func, None)
+    return StaticTask(func, None, None)

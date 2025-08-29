@@ -73,6 +73,9 @@ class Graph:
 
         self.status[child] = Status.STATIC_KNOWN
 
+    def branch(self, node: BasicTask) -> None:
+        self.status[node] = Status.BRANCH_POSSIBLE
+
     def completed(self, node: BasicTask) -> None:
         self.status[node] = Status.COMPLETED
 
@@ -82,6 +85,10 @@ class Graph:
         for orphan in orphans:
             del self.status[orphan]
             self.edges[node].remove(orphan)
+
+        for child in self.edges[node]:
+            if self.status[child] == Status.BRANCH_POSSIBLE:
+                self.status[child] = Status.BRANCH_NOT_TAKEN
 
         self.save()
 
